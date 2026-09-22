@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-
+from api.tts import router as tts_router
 from agents.orion_agent import orion
 from database.investigation_store import (
     get_investigation,
@@ -40,7 +40,7 @@ app.add_middleware(
 
 app.include_router(remediation_router)
 app.include_router(voice_router)
-
+app.include_router(tts_router)
 
 # ----------------------------------------------------------------
 # Core endpoints
@@ -141,3 +141,4 @@ def investigation(investigation_id: str):
             status_code=500,
             detail="Unable to retrieve investigation.",
         )
+    

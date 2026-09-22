@@ -1261,3 +1261,21 @@
     gap: 12px;
   }
 }
+.voice-toggle {
+  border: 1px solid rgba(0, 255, 200, 0.3);
+  background: transparent;
+  color: #00ffc8;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-right: 10px;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.voice-toggle:hover {
+  background: rgba(0, 255, 200, 0.12);
+  border-color: rgba(0, 255, 200, 0.6);
+}

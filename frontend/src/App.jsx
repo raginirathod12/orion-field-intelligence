@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import "./App.css";
 import InvestigationTimeline from "./InvestigationTimeline";
 import ActionPanel from "./ActionPanel";
 import VerificationResult from "./VerificationResult";
 import InvestigationHistory from "./InvestigationHistory";
-import VoiceInput from "./VoiceInput"; // ← CHANGED (new import)
+import VoiceInput from "./VoiceInput";
 import "./investigation.css";
 
 const API_URL = "http://127.0.0.1:8000";
@@ -25,7 +25,6 @@ function formatNumber(value, decimals = 1) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
     return "—";
   }
-
   return Number(value).toFixed(decimals);
 }
 
@@ -33,7 +32,6 @@ function formatStatus(value) {
   if (value === null || value === undefined || value === "") {
     return "UNKNOWN";
   }
-
   return String(value).replaceAll("_", " ").toUpperCase();
 }
 
@@ -41,34 +39,109 @@ function formatClassification(value) {
   if (value === null || value === undefined || value === "") {
     return "UNCLASSIFIED";
   }
-
   return String(value).replaceAll("_", " ").toUpperCase();
 }
 
 function App() {
   const [message, setMessage] = useState(DEFAULT_MESSAGE);
-
   const [data, setData] = useState(null);
-
   const [loading, setLoading] = useState(false);
-
   const [error, setError] = useState("");
-
   const [activeStep, setActiveStep] = useState(-1);
-
   const [showRawResponse, setShowRawResponse] = useState(false);
   const [verificationResult, setVerificationResult] = useState(null);
+
+  // Voice output state
+  const [voiceOutputEnabled, setVoiceOutputEnabled] = useState(true);
+  const audioRef = useRef(null);
+
+  // ========================================================
+  // VOICE OUTPUT (Text-to-Speech)
+  // ========================================================
+
+  function buildVoiceSummary(result) {
+    if (!result) return "";
+
+    const diagnosis = result.diagnosis || {};
+    const observation = diagnosis.observation || "";
+    const confidence = diagnosis.confidence || "";
+
+    const sentences = observation
+      .split(/(?<=[.!?])\s+/)
+      .filter(Boolean)
+      .slice(0, 2);
+
+    let summary = sentences.join(" ").trim();
+
+    const strongest = result?.investigation?.strongest_evidence;
+    if (strongest?.process) {
+      const name = strongest.process.replace(".exe", "");
+      summary += ` The strongest candidate is ${name}.`;
+    }
+
+    if (confidence) {
+      summary += ` Confidence is ${confidence}.`;
+    }
+
+    return summary.trim();
+  }
+
+  async function speakText(text) {
+    if (!text || !voiceOutputEnabled) return;
+
+    const clean = String(text)
+      .replace(/[*#_`>|]/g, "")
+      .slice(0, 500)
+      .trim();
+
+    if (!clean) return;
+
+    // Stop any previous audio
+    if (audioRef.current) {
+      try {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      } catch {}
+      audioRef.current = null;
+    }
+
+    // Try backend Edge TTS first
+    try {
+      const url = `${API_URL}/tts/speak?text=${encodeURIComponent(clean)}`;
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      await audio.play();
+      return;
+    } catch (err) {
+      console.warn("Backend TTS failed, using browser fallback:", err);
+    }
+
+    // Fallback: browser speech synthesis
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(clean);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      const voices = window.speechSynthesis.getVoices();
+      const english = voices.find((v) => v.lang.startsWith("en"));
+      if (english) utterance.voice = english;
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.warn("Browser TTS also failed:", err);
+    }
+  }
 
   // ========================================================
   // INVESTIGATION REQUEST
   // ========================================================
+
   async function investigate(overrideMessage = null) {
-    // If called from a click handler, the first arg is the event — ignore it.
     const override =
       typeof overrideMessage === "string" ? overrideMessage : null;
 
     const source = override ?? message;
     const trimmed = source.trim();
+
     if (!trimmed || loading) {
       return;
     }
@@ -85,9 +158,6 @@ function App() {
 
     const timer = setInterval(() => {
       setActiveStep((current) => {
-        // Stop at the second-to-last step.
-        // The last step ("Generating diagnosis") only
-        // completes when the backend actually responds.
         if (current >= INVESTIGATION_STEPS.length - 2) {
           return current;
         }
@@ -102,39 +172,40 @@ function App() {
 
       if (!response.ok) {
         let detail = "ORION request failed.";
-
         try {
           const errorData = await response.json();
-
           if (errorData?.detail) {
             detail = errorData.detail;
           }
         } catch {
-          // Ignore JSON parsing errors.
+          // Ignore
         }
-
         throw new Error(detail);
       }
 
       const result = await response.json();
 
       setData(result);
-
       setActiveStep(INVESTIGATION_STEPS.length - 1);
+
+      // Speak the summary out loud
+      if (voiceOutputEnabled) {
+        const summary = buildVoiceSummary(result);
+        speakText(summary);
+      }
     } catch (requestError) {
       setError(requestError?.message || "Unable to connect to ORION.");
-
       setData(null);
     } finally {
       clearInterval(timer);
-
       setLoading(false);
     }
   }
 
   // ========================================================
-  // VOICE TRANSCRIPT HANDLER  ← CHANGED (new function)
+  // VOICE TRANSCRIPT HANDLER
   // ========================================================
+
   function handleVoiceTranscript(transcript) {
     const cleaned = (transcript || "").trim();
     if (!cleaned) {
@@ -154,7 +225,6 @@ function App() {
 
     try {
       setError("");
-
       setShowRawResponse(false);
 
       const response = await fetch(
@@ -163,17 +233,14 @@ function App() {
 
       if (!response.ok) {
         let detail = "Unable to load investigation.";
-
         try {
           const errorData = await response.json();
-
           if (errorData?.detail) {
             detail = errorData.detail;
           }
         } catch {
-          // Ignore JSON parsing errors.
+          // Ignore
         }
-
         throw new Error(detail);
       }
 
@@ -181,7 +248,6 @@ function App() {
 
       if (result?.investigation) {
         setData(result.investigation);
-
         if (result.investigation.question) {
           setMessage(result.investigation.question);
         }
@@ -202,7 +268,6 @@ function App() {
   function handleKeyDown(event) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-
       investigate();
     }
   }
@@ -212,19 +277,11 @@ function App() {
   // ========================================================
 
   const investigation = data?.investigation || {};
-
   const system = investigation.system || {};
-
   const stages = investigation.stages || {};
-
   const strongestEvidence = investigation.strongest_evidence;
   const rootCauses = investigation.root_causes || [];
-
   const evidence = investigation.evidence || [];
-
-  // ========================================================
-  // ROOT CAUSE STATUS
-  // ========================================================
 
   const rootCauseStatus = investigation.root_cause_status || "UNCONFIRMED";
 
@@ -236,39 +293,28 @@ function App() {
     return [
       {
         label: "CPU",
-
         value:
           system.cpu_percent !== null && system.cpu_percent !== undefined
             ? `${formatNumber(system.cpu_percent)}%`
             : "—",
-
         description: "Current system load",
       },
-
       {
         label: "RAM",
-
         value:
           system.ram_percent !== null && system.ram_percent !== undefined
             ? `${formatNumber(system.ram_percent)}%`
             : "—",
-
         description: "Memory utilization",
       },
-
       {
         label: "DISK",
-
         value: formatStatus(system.disk_status),
-
         description: "Storage condition",
       },
-
       {
         label: "GPU",
-
         value: formatStatus(system.gpu_status),
-
         description: "Graphics activity",
       },
     ];
@@ -282,21 +328,14 @@ function App() {
     if (!loading && data) {
       return "complete";
     }
-
     if (index < activeStep) {
       return "complete";
     }
-
     if (index === activeStep && loading) {
       return "active";
     }
-
     return "pending";
   }
-
-  // ========================================================
-  // TIMELINE ACTIVE STEP
-  // ========================================================
 
   const timelineStep = loading ? "investigate" : data ? "diagnose" : "observe";
 
@@ -306,50 +345,51 @@ function App() {
 
   return (
     <div className="app-shell">
-      {/* ==================================================
-          HEADER
-      ================================================== */}
-
       <header className="topbar">
         <div className="brand">
           <div className="brand-mark">O</div>
-
           <div>
             <div className="brand-name">ORION</div>
-
             <div className="brand-subtitle">FIELD INTELLIGENCE</div>
           </div>
         </div>
 
         <div className="system-status">
+          <button
+            type="button"
+            className="voice-toggle"
+            onClick={() => {
+              setVoiceOutputEnabled((v) => !v);
+              if (audioRef.current) {
+                try {
+                  audioRef.current.pause();
+                } catch {}
+              }
+            }}
+            title={
+              voiceOutputEnabled ? "Mute ORION voice" : "Unmute ORION voice"
+            }
+          >
+            {voiceOutputEnabled ? "🔊" : "🔇"}
+          </button>
           <span className="status-dot" />
           SYSTEM ONLINE
         </div>
       </header>
 
-      {/* ==================================================
-          HERO
-      ================================================== */}
-
       <main className="page">
         <section className="hero">
           <div className="eyebrow">EVIDENCE-BASED COMPUTER INTELLIGENCE</div>
-
           <h1>
             Investigate your machine.
             <br />
             Understand the cause.
           </h1>
-
           <p>
             ORION observes system behavior, investigates anomalies, ranks
             possible causes, and produces an evidence-based diagnosis.
           </p>
         </section>
-
-        {/* ==================================================
-            REQUEST
-        ================================================== */}
 
         <section className="panel request-panel">
           <div className="panel-label">INVESTIGATION REQUEST</div>
@@ -375,33 +415,16 @@ function App() {
           <div className="input-hint">Press Enter to investigate</div>
         </section>
 
-        {/* ==================================================
-            VOICE INPUT  ← CHANGED (new component)
-        ================================================== */}
-
         <VoiceInput onTranscript={handleVoiceTranscript} disabled={loading} />
-
-        {/* ==================================================
-            ERROR
-        ================================================== */}
 
         {error && (
           <section className="error-panel">
             <strong>ORION CONNECTION ERROR</strong>
-
             <span>{error}</span>
           </section>
         )}
 
-        {/* ==================================================
-            NEW INVESTIGATION TIMELINE
-        ================================================== */}
-
         <InvestigationTimeline activeStep={timelineStep} />
-
-        {/* ==================================================
-            PIPELINE
-        ================================================== */}
 
         <section className="panel">
           <div className="panel-label">INVESTIGATION PIPELINE</div>
@@ -423,7 +446,6 @@ function App() {
           <div className="pipeline">
             {INVESTIGATION_STEPS.map(([key, label], index) => {
               const status = getPipelineStatus(key, index);
-
               const backendStatus = stages[key];
 
               return (
@@ -451,10 +473,6 @@ function App() {
           </div>
         </section>
 
-        {/* ==================================================
-            TELEMETRY
-        ================================================== */}
-
         {data && (
           <section className="panel">
             <div className="panel-label">TELEMETRY</div>
@@ -463,7 +481,6 @@ function App() {
               <div>
                 <h2>System health</h2>
               </div>
-
               <div className="observed-badge">● OBSERVED</div>
             </div>
 
@@ -471,19 +488,13 @@ function App() {
               {systemCards.map((card) => (
                 <div className="health-card" key={card.label}>
                   <div className="health-label">{card.label}</div>
-
                   <div className="health-value">{card.value}</div>
-
                   <div className="health-description">{card.description}</div>
                 </div>
               ))}
             </div>
           </section>
         )}
-
-        {/* ==================================================
-            EVIDENCE FUSION
-        ================================================== */}
 
         {data && (
           <section className="panel">
@@ -506,10 +517,8 @@ function App() {
               <div className="evidence-card">
                 <div className="evidence-main">
                   <div className="evidence-icon">⬡</div>
-
                   <div>
                     <div className="evidence-kicker">PRIMARY PROCESS</div>
-
                     <div className="evidence-process">
                       {strongestEvidence.process || "Process not identified"}
                     </div>
@@ -519,13 +528,11 @@ function App() {
                 <div className="evidence-metrics">
                   <div className="metric">
                     <span>PID</span>
-
                     <strong>{strongestEvidence.pid ?? "N/A"}</strong>
                   </div>
 
                   <div className="metric">
                     <span>CPU</span>
-
                     <strong>
                       {strongestEvidence.cpu_percent !== null &&
                       strongestEvidence.cpu_percent !== undefined
@@ -542,7 +549,6 @@ function App() {
 
                   <div className="metric">
                     <span>TEMPORAL BEHAVIOR</span>
-
                     <strong>
                       {formatStatus(strongestEvidence.temporal_behavior)}
                     </strong>
@@ -550,13 +556,11 @@ function App() {
 
                   <div className="metric">
                     <span>EVIDENCE SCORE</span>
-
                     <strong>{strongestEvidence.score ?? "N/A"}</strong>
                   </div>
 
                   <div className="metric">
                     <span>CLASSIFICATION</span>
-
                     <strong>
                       {formatClassification(strongestEvidence.classification)}
                     </strong>
@@ -570,10 +574,6 @@ function App() {
               </div>
             )}
 
-            {/* ==================================================
-                ALL EVIDENCE
-            ================================================== */}
-
             {evidence.length > 1 && (
               <div className="evidence-list">
                 <div className="subsection-title">Supporting evidence</div>
@@ -585,7 +585,6 @@ function App() {
                   >
                     <div>
                       <strong>{item.process || "System signal"}</strong>
-
                       <span>
                         {item.pids && item.pids.length > 0
                           ? `PIDs ${item.pids.join(", ")}`
@@ -614,17 +613,12 @@ function App() {
           </section>
         )}
 
-        {/* ==================================================
-            ROOT CAUSE ANALYSIS
-        ================================================== */}
-
         {data && (
           <section className="panel">
             <div className="panel-label">ROOT CAUSE ANALYSIS</div>
 
             <div className="section-heading-row">
               <h2>Likely causes</h2>
-
               <div className={`cause-status ${rootCauseStatus.toLowerCase()}`}>
                 {formatStatus(rootCauseStatus)}
               </div>
@@ -643,13 +637,11 @@ function App() {
 
                       <div className="cause-meta">
                         <span>CONFIDENCE</span>
-
                         <strong>{formatStatus(cause.confidence)}</strong>
 
                         {cause.score !== null && cause.score !== undefined && (
                           <>
                             <span>SCORE</span>
-
                             <strong>{cause.score}</strong>
                           </>
                         )}
@@ -666,10 +658,6 @@ function App() {
           </section>
         )}
 
-        {/* ==================================================
-            DIAGNOSIS
-        ================================================== */}
-
         {data && (
           <section className="panel">
             <div className="panel-label">ORION DIAGNOSIS</div>
@@ -681,7 +669,6 @@ function App() {
             <div className="diagnosis-grid">
               <article>
                 <h3>OBSERVATION</h3>
-
                 <p>
                   {data.diagnosis?.observation || "No observation available."}
                 </p>
@@ -689,7 +676,6 @@ function App() {
 
               <article>
                 <h3>EVIDENCE</h3>
-
                 <p>
                   {data.diagnosis?.evidence || "No evidence summary available."}
                 </p>
@@ -697,24 +683,20 @@ function App() {
 
               <article>
                 <h3>CONFIDENCE</h3>
-
                 <div className="confidence-value">
                   {formatStatus(data.diagnosis?.confidence)}
                 </div>
-
                 <p>Based on the evidence collected during the investigation.</p>
               </article>
 
               <article>
                 <h3>NEXT STEP</h3>
-
                 <p>{data.diagnosis?.next_step || "No next step available."}</p>
               </article>
             </div>
 
             <div className="causes-summary">
               <h3>LIKELY CAUSES</h3>
-
               <p>
                 {data.diagnosis?.likely_causes ||
                   "No specific cause confirmed."}
@@ -722,10 +704,6 @@ function App() {
             </div>
           </section>
         )}
-
-        {/* ==================================================
-            CONTROLLED INTERVENTION
-        ================================================== */}
 
         {data && (
           <ActionPanel
@@ -737,15 +715,7 @@ function App() {
 
         <VerificationResult result={verificationResult} />
 
-        {/* ==================================================
-            INVESTIGATION HISTORY
-        ================================================== */}
-
         <InvestigationHistory onSelect={loadInvestigation} />
-
-        {/* ==================================================
-            RAW RESPONSE
-        ================================================== */}
 
         {data && (
           <section className="raw-section">
@@ -764,10 +734,6 @@ function App() {
           </section>
         )}
       </main>
-
-      {/* ==================================================
-          FOOTER
-      ================================================== */}
 
       <footer className="footer">
         ORION FIELD INTELLIGENCE
