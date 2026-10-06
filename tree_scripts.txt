@@ -1,0 +1,4 @@
+﻿C:\Users\HP\Desktop\ORION-Field-Intelligence\scripts\demo_cpu_load.py
+C:\Users\HP\Desktop\ORION-Field-Intelligence\scripts\demo_memory_load.py
+C:\Users\HP\Desktop\ORION-Field-Intelligence\scripts\demo_transient_spike.py
+C:\Users\HP\Desktop\ORION-Field-Intelligence\scripts\gen_demo_narration.py

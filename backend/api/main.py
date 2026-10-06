@@ -1,5 +1,10 @@
+from api.voice_agent import router as voice_agent_router
+import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+
 from api.tts import router as tts_router
 from agents.orion_agent import orion
 from database.investigation_store import (
@@ -9,12 +14,26 @@ from database.investigation_store import (
 )
 from api.remediation import router as remediation_router
 from api.voice import router as voice_router
+from api.findings import router as findings_router
+from monitoring.watcher import start_watcher, stop_watcher
+
+
+@asynccontextmanager
+async def lifespan(app):
+    # Startup: start background watcher
+    start_watcher()
+
+    yield
+
+    # Shutdown: stop background watcher
+    await stop_watcher()
 
 
 app = FastAPI(
     title="ORION Field Intelligence",
     description="AI-powered field intelligence assistant",
     version="0.5.0",
+    lifespan=lifespan,
 )
 
 
@@ -41,6 +60,12 @@ app.add_middleware(
 app.include_router(remediation_router)
 app.include_router(voice_router)
 app.include_router(tts_router)
+app.include_router(findings_router)
+app.include_router(voice_agent_router)
+from api.nodes import router as nodes_router
+
+app.include_router(nodes_router)
+
 
 # ----------------------------------------------------------------
 # Core endpoints
@@ -141,4 +166,3 @@ def investigation(investigation_id: str):
             status_code=500,
             detail="Unable to retrieve investigation.",
         )
-    

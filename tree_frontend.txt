@@ -1,0 +1,15 @@
+﻿C:\Users\HP\Desktop\ORION-Field-Intelligence\frontend\src\ActionPanel.jsx
+C:\Users\HP\Desktop\ORION-Field-Intelligence\frontend\src\App.css
+C:\Users\HP\Desktop\ORION-Field-Intelligence\frontend\src\App.jsx
+C:\Users\HP\Desktop\ORION-Field-Intelligence\frontend\src\FindingsPanel.jsx
+C:\Users\HP\Desktop\ORION-Field-Intelligence\frontend\src\index.css
+C:\Users\HP\Desktop\ORION-Field-Intelligence\frontend\src\investigation.css
+C:\Users\HP\Desktop\ORION-Field-Intelligence\frontend\src\InvestigationHistory.jsx
+C:\Users\HP\Desktop\ORION-Field-Intelligence\frontend\src\InvestigationTimeline.jsx
+C:\Users\HP\Desktop\ORION-Field-Intelligence\frontend\src\main.jsx
+C:\Users\HP\Desktop\ORION-Field-Intelligence\frontend\src\VerificationResult.jsx
+C:\Users\HP\Desktop\ORION-Field-Intelligence\frontend\src\VoiceAgent.jsx
+C:\Users\HP\Desktop\ORION-Field-Intelligence\frontend\src\VoiceInput.jsx
+C:\Users\HP\Desktop\ORION-Field-Intelligence\frontend\src\assets\hero.png
+C:\Users\HP\Desktop\ORION-Field-Intelligence\frontend\src\assets\react.svg
+C:\Users\HP\Desktop\ORION-Field-Intelligence\frontend\src\assets\vite.svg
