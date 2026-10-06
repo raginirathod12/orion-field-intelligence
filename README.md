@@ -1,4 +1,4 @@
-﻿# ORION — The AI That Proves Itself Wrong
+# ORION — The AI That Proves Itself Wrong
 
 > Most system monitors tell you **what** is happening. ORION tells you **why** — and then proves it.
 
@@ -18,8 +18,7 @@ That tells you **what** is consuming resources. It does not tell you:
 - **Whether** Chrome is actually the cause
 - **What** happens if you act on that guess
 
-Every existing tool stops at "here are the numbers." None of them
-investigate, test a hypothesis, or verify the outcome.
+Every existing tool stops at "here are the numbers." None of them investigate, test a hypothesis, or verify the outcome.
 
 ---
 
@@ -67,8 +66,7 @@ Every number in that chain is **live telemetry**. Nothing is mocked.
 
 ## The Killer Feature: Falsifiability
 
-Most AI systems commit to an answer. ORION **tests** its answer and
-reports honestly — including when the answer was wrong.
+Most AI systems commit to an answer. ORION **tests** its answer and reports honestly — including when the answer was wrong.
 
 ### When ORION is right
 
@@ -98,8 +96,7 @@ reports honestly — including when the answer was wrong.
     improvement. The candidate is therefore weakened as the
     primary contributor.
 
-**That second output is the point.** Most AI tools cannot say "I was
-wrong." ORION can, does, and reports the evidence for it.
+**That second output is the point.** Most AI tools cannot say "I was wrong." ORION can, does, and reports the evidence for it.
 
 ---
 
@@ -108,30 +105,30 @@ wrong." ORION can, does, and reports the evidence for it.
 ORION runs on your real machine. It takes that seriously.
 
 ### 1. Explicit user permission
-No action runs without you clicking Approve. The voice layer
-cannot bypass this — a spoken command is not authorization.
+
+No action runs without you clicking **Approve**. The voice layer cannot bypass this — a spoken command is not authorization.
 
 ### 2. Protected process policy
+
 The backend refuses to touch:
 
     System, smss.exe, csrss.exe, services.exe, lsass.exe,
     winlogon.exe, svchost.exe, dwm.exe, explorer.exe, conhost.exe,
     memcompression
 
-Any request matching this list returns 403 Forbidden, no matter
-who asks.
+Any request matching this list returns `403 Forbidden`, no matter who asks.
 
 ### 3. Process identity verification
-Before acting, ORION re-reads the PID and confirms the name still
-matches the investigation. This prevents PID recycling attacks.
+
+Before acting, ORION re-reads the PID and confirms the name still matches the investigation. This prevents PID recycling attacks.
 
 ### 4. Always-resume guarantee
-The suspend function wraps resume in a try/finally. Even if
-measurement crashes, the process is resumed.
+
+The suspend function wraps resume in a `try/finally`. Even if measurement crashes, the process is resumed.
 
 ### 5. No process is ever terminated
-ORION only calls process.suspend(). Never terminate(). Never
-kill(). The process keeps its memory, files, and state.
+
+ORION only calls `process.suspend()`. Never `terminate()`. Never `kill()`. The process keeps its memory, files, and state.
 
 ---
 
@@ -141,42 +138,42 @@ kill(). The process keeps its memory, files, and state.
 
 Every investigation runs through 7 stages:
 
-| Stage | What it does |
-|---|---|
-| Understanding | Classify intent (INVESTIGATE vs GENERAL) |
-| Telemetry | Collect live CPU, RAM, disk, GPU snapshots |
-| Anomaly Detection | Score individual processes against baselines |
-| Root Cause Ranking | Order candidates by weighted evidence |
-| Investigation | Autonomously pick the next tool based on gaps |
-| Evidence Fusion | Combine independent signals into one score |
-| Diagnosis | Produce structured explanation + next step |
+| Stage              | What it does                                  |
+| ------------------ | --------------------------------------------- |
+| Understanding      | Classify intent (INVESTIGATE vs GENERAL)      |
+| Telemetry          | Collect live CPU, RAM, disk, GPU snapshots    |
+| Anomaly Detection  | Score individual processes against baselines  |
+| Root Cause Ranking | Order candidates by weighted evidence         |
+| Investigation      | Autonomously pick the next tool based on gaps |
+| Evidence Fusion    | Combine independent signals into one score    |
+| Diagnosis          | Produce structured explanation + next step    |
 
 ### Evidence Fusion
 
 The fusion engine combines:
 
-- Anomaly score — how far a process deviates from normal
-- Temporal score — is the activity persistent or transient?
-- Deep investigation — command line, threads, open files
-- Per-core distribution — is CPU load concentrated?
+- **Anomaly score** — how far a process deviates from normal
+- **Temporal score** — is the activity persistent or transient?
+- **Deep investigation** — command line, threads, open files
+- **Per-core distribution** — is CPU load concentrated?
 
-Each signal has a weight. The final score is 0-100.
+Each signal has a weight. The final score is 0–100.
 
 Classifications:
 
-- STRONG_CANDIDATE (score >= 50)
-- POSSIBLE_CANDIDATE (score 10-49)
-- WEAKENED (score 1-9)
-- NOT_CONFIRMED (score 0)
+- `STRONG_CANDIDATE` (score ≥ 50)
+- `POSSIBLE_CANDIDATE` (score 10–49)
+- `WEAKENED` (score 1–9)
+- `NOT_CONFIRMED` (score 0)
 
 ### Remediation Model
 
 The remediation layer has 4 checks:
 
-1. User approval — explicit approved: true in the request
-2. Investigation membership — the PID was actually investigated
-3. Process identity — the PID still maps to the same name
-4. Protected policy — the name is not on the protected list
+1. **User approval** — explicit `approved: true` in the request
+2. **Investigation membership** — the PID was actually investigated
+3. **Process identity** — the PID still maps to the same name
+4. **Protected policy** — the name is not on the protected list
 
 If all four pass, ORION:
 
@@ -189,9 +186,51 @@ If all four pass, ORION:
 
 ### Verification Statuses
 
-- SUPPORTED_BY_INTERVENTION — CPU dropped > 5 percentage points
-- WEAK_INTERVENTION_SIGNAL — CPU dropped 0-5 points
-- NO_MEASURED_IMPROVEMENT — CPU did not drop
+- `SUPPORTED_BY_INTERVENTION` — CPU dropped > 5 percentage points
+- `WEAK_INTERVENTION_SIGNAL` — CPU dropped 0–5 points
+- `NO_MEASURED_IMPROVEMENT` — CPU did not drop
+
+---
+
+## Multi-Node Monitoring
+
+ORION monitors more than one machine. Each computer runs a lightweight collector script that reports telemetry back to a central ORION server. The dashboard shows all nodes at once.
+
+    MONITORED NODES
+    Infrastructure              3 NODES
+
+    * DESKTOP-01
+      CPU 18%   RAM 52%   DISK 45%
+      ONLINE - 3s ago
+
+    * SERVER-ALPHA
+      CPU 87%   RAM 71%   DISK 62%
+      ONLINE - 5s ago
+
+    * CLOUD-VM-02
+      CPU 12%   RAM 30%   DISK 22%
+      OFFLINE - 4m ago
+
+### How it works
+
+1. Run the ORION backend on one machine (the "control server")
+2. Run `scripts/collector.py` on every machine you want to monitor
+3. Each collector sends CPU, RAM, disk, and uptime every 30 seconds
+4. The dashboard shows all nodes with their online/offline status
+
+### Running a collector
+
+    python scripts/collector.py --server http://ORION_HOST:8000 --name "Server-01"
+
+There is no limit to how many machines can report to the same ORION server.
+
+### Multi-node API
+
+| Endpoint           | Method | Purpose                          |
+| ------------------ | ------ | -------------------------------- |
+| `/nodes`           | GET    | List all registered nodes        |
+| `/nodes/{node_id}` | GET    | Get a specific node              |
+| `/nodes/report`    | POST   | Collector reports telemetry here |
 
 ---
 
@@ -204,7 +243,8 @@ If all four pass, ORION:
     |  - Evidence fusion display                           |
     |  - Action panel (protected / actionable)             |
     |  - Verification result                               |
-    |  - Voice input (AssemblyAI token-based)              |
+    |  - Voice agent (AssemblyAI Voice Agent API)          |
+    |  - Multi-node dashboard                              |
     +----------------------+-------------------------------+
                            |  HTTP / WebSocket
     +----------------------v-------------------------------+
@@ -215,33 +255,37 @@ If all four pass, ORION:
     |  - Evidence fusion engine                            |
     |  - Temporal process profiler                         |
     |  - Remediation policy + execution                    |
-    |  - Voice token service                               |
+    |  - Voice agent token service                         |
+    |  - Multi-node registry + collector API               |
     +----------------------+-------------------------------+
                            |
-            +--------------+--------------+
-            |              |              |
-            v              v              v
-        psutil       AssemblyAI         Groq
-      (live telemetry) (realtime voice) (structured
-                                          reasoning)
-                           |
-                           v
-                        SQLite
-                  (investigation history)
+        +------------------+------------------+
+        |                  |                  |
+        v                  v                  v
+     psutil          AssemblyAI            Groq
+
+(telemetry) (Voice Agent API) (reasoning)
+| | |
++------------------+------------------+
+|
+v
+SQLite
+(investigation history)
 
 ---
 
 ## Technology Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | React 18, Vite, custom CSS |
-| Backend | Python 3.13, FastAPI, Uvicorn |
-| Telemetry | psutil |
-| Voice | AssemblyAI v3 streaming (v1.1.0 SDK) |
-| Reasoning | Groq |
-| Persistence | SQLite |
+| Layer           | Technology                     |
+| --------------- | ------------------------------ |
+| Frontend        | React 18, Vite, custom CSS     |
+| Backend         | Python 3.13, FastAPI, Uvicorn  |
+| Telemetry       | psutil                         |
+| Voice           | AssemblyAI Voice Agent API     |
+| Reasoning       | Groq                           |
+| Persistence     | SQLite                         |
 | Process control | psutil (suspend / resume only) |
+| Multi-node      | Custom collector + registry    |
 
 ---
 
@@ -249,9 +293,7 @@ If all four pass, ORION:
 
 ### 1. Clone or copy the project
 
-Place at:
-
-    C:\Users\HP\Desktop\ORION-Field-Intelligence
+Place at: `C:\Users\HP\Desktop\ORION-Field-Intelligence`
 
 ### 2. Create and activate Python environment
 
@@ -272,22 +314,21 @@ Place at:
 
 ## Environment Configuration
 
-Create backend/.env:
+Create `backend/.env`:
 
     ASSEMBLYAI_API_KEY=your_assemblyai_api_key
     GROQ_API_KEY=your_groq_api_key
     GROQ_MODEL=openai/gpt-oss-120b
 
-Both keys stay server-side. The browser only ever receives a
-short-lived AssemblyAI streaming token.
+Both keys stay server-side. The browser only ever receives a short-lived AssemblyAI token.
 
-Never commit .env to Git. It is already in .gitignore.
+Never commit `.env` to Git. It is already in `.gitignore`.
 
 ---
 
 ## Running ORION
 
-Three terminals.
+Four terminals.
 
 ### Terminal 1 — CPU load (optional, for demos)
 
@@ -303,53 +344,64 @@ Creates a real, sustained CPU load so ORION has something to find.
     cd backend
     uvicorn api.main:app --reload
 
-Available at http://127.0.0.1:8000. Health check:
-
-    http://127.0.0.1:8000/health
+Available at `http://127.0.0.1:8000`
 
 ### Terminal 3 — Frontend
 
     cd C:\Users\HP\Desktop\ORION-Field-Intelligence\frontend
     npm run dev
 
-Open the Vite URL (usually http://localhost:5175/).
+Open the Vite URL (usually `http://localhost:5175/`).
+
+### Terminal 4 — Multi-node collector (optional)
+
+    cd C:\Users\HP\Desktop\ORION-Field-Intelligence
+    .\venv\Scripts\Activate.ps1
+    python scripts\collector.py
+
+Register this machine as a node.
 
 ---
 
 ## Using ORION
 
-Open the frontend. Type:
+Open the frontend. Click **START VOICE AGENT**. Say:
 
-    My laptop is extremely slow. Find out why.
+    "Why is my laptop slow?"
 
-Press INVESTIGATE.
+ORION investigates, speaks the result, and offers an intervention.
+
+Or type the request into the text box and click **INVESTIGATE**.
 
 The dashboard displays:
 
-- Investigation timeline
+- Voice conversation with barge-in
+- Investigation timeline (7 stages)
 - System telemetry (CPU, RAM, Disk, GPU)
 - Evidence fusion (strongest candidate + score)
-- Supporting evidence list
+- ORION reasoning (primary signals + ruled out)
 - Root cause ranking
 - Structured diagnosis
 - Action panel (protected / actionable / not actionable)
 - Verification result
+- Multi-node dashboard
+- Automatic findings feed
 - Investigation history
 
 ---
 
 ## Example Investigation
 
-User:
+**User:**
 
     My laptop is extremely slow. Find out why.
 
-ORION observes:
+**ORION observes:**
 
     CPU: 74.6%
     RAM: 51.1%
 
-ORION identifies:
+**ORION identifies:**
 
     python3.13.exe
     PID 17412
@@ -358,7 +410,7 @@ ORION identifies:
     Evidence Score: 100
     Classification: STRONG_CANDIDATE
 
-ORION proposes:
+**ORION proposes:**
 
     Controlled intervention
 
@@ -366,7 +418,7 @@ ORION proposes:
 
     [ TEMPORARILY SUSPEND & VERIFY ]
 
-If the user approves:
+**If the user approves:**
 
     Suspend process
           |
@@ -379,7 +431,7 @@ If the user approves:
           v
     Verify
 
-Result:
+**Result:**
 
     CPU BEFORE     47.8%
     CPU DURING     26.4%
@@ -409,31 +461,23 @@ Backend health check.
 
     GET /ask?message=<question>
 
-Example:
-
-    /ask?message=My laptop is extremely slow
-
 Runs a full investigation.
 
-### Investigation History
+### Investigations
 
     GET /investigations?limit=10
 
 Returns stored investigations.
 
-### Investigation Details
-
     GET /investigations/{investigation_id}
 
 Returns one specific investigation.
 
-### Remediation — Suspend and Verify
+### Remediation
 
     POST /investigations/{investigation_id}/actions/suspend
 
-Requires explicit user approval.
-
-Body:
+Requires explicit user approval. Body:
 
     {
       "approved": true,
@@ -442,50 +486,33 @@ Body:
       "suspend_seconds": 4
     }
 
-The backend validates approval, investigation membership, process
-identity, and the protected-process policy. All four must pass.
-
-### Voice Health
+### Voice
 
     GET /voice/health
 
 Reports whether the AssemblyAI key and microphone are available.
 
-### Voice Token
+    GET /voice/agent-token
 
-    GET /voice/token
+Returns a full agent configuration with tools and system prompt.
 
-Returns a short-lived AssemblyAI streaming token. The permanent key
-never leaves the server.
+    POST /voice/agent-tool
 
----
+Executes a tool called by the voice agent.
 
-## Investigation History
+### Multi-node
 
-ORION stores investigation results locally using SQLite:
+    POST /nodes/report
 
-    backend/database/orion_history.db
+Collectors report telemetry here.
 
-The store supports:
+    GET /nodes
 
-    create_investigation_id()
-    save_investigation()
-    get_investigation()
-    list_investigations()
+List all registered nodes.
 
-Each entry contains:
+    GET /nodes/{node_id}
 
-- Investigation ID
-- Timestamp
-- Question
-- Intent
-- Status
-- Structured result
-- Evidence
-- Diagnosis
-
-This lets ORION move beyond one-off conversations. Every
-investigation is retrievable later.
+Get a specific node.
 
 ---
 
@@ -494,55 +521,46 @@ investigation is retrievable later.
     ORION-Field-Intelligence/
     |
     +-- backend/
-    |   +-- agents/
-    |   |   +-- orion_agent.py
+    |   +-- agents/orion_agent.py
     |   +-- api/
     |   |   +-- main.py
     |   |   +-- remediation.py
     |   |   +-- voice.py
+    |   |   +-- voice_agent.py
+    |   |   +-- tts.py
+    |   |   +-- findings.py
+    |   |   +-- nodes.py
     |   +-- database/
     |   |   +-- investigation_store.py
-    |   |   +-- orion_history.db
+    |   |   +-- findings_store.py
+    |   +-- monitoring/watcher.py
+    |   +-- nodes/
+    |   |   +-- registry.py
     |   +-- tools/
-    |   |   +-- system_info.py
-    |   |   +-- process_monitor.py
-    |   |   +-- performance_monitor.py
-    |   |   +-- evidence_fusion.py
-    |   |   +-- investigation_planner.py
-    |   |   +-- gpu_monitor.py
-    |   |   +-- memory_pressure.py
-    |   |   +-- storage_latency.py
-    |   |   +-- remediation/
-    |   |       +-- action_policy.py
-    |   |       +-- process_actions.py
     |   +-- voice/
-    |   |   +-- realtime_transcriber.py
-    |   |   +-- voice_session.py
-    |   |   +-- samples/
     |   +-- .env
     |   +-- config.py
     |   +-- requirements.txt
     |
     +-- frontend/
-    |   +-- public/
-    |   |   +-- audio/
-    |   |       +-- pcm-processor.js
+    |   +-- public/audio/
+    |   |   +-- pcm-processor-24k.js
     |   +-- src/
     |       +-- App.jsx
     |       +-- App.css
-    |       +-- VoiceInput.jsx
+    |       +-- VoiceAgent.jsx
     |       +-- ActionPanel.jsx
     |       +-- VerificationResult.jsx
     |       +-- InvestigationHistory.jsx
     |       +-- InvestigationTimeline.jsx
+    |       +-- FindingsPanel.jsx
+    |       +-- NodesPanel.jsx
     |
     +-- scripts/
     |   +-- demo_cpu_load.py
     |   +-- demo_memory_load.py
     |   +-- demo_transient_spike.py
-    |
-    +-- docs/
-    |   +-- architecture.md
+    |   +-- collector.py
     |
     +-- venv/
     +-- .gitignore
@@ -552,71 +570,39 @@ investigation is retrievable later.
 
 ## What Makes ORION Different
 
-| Other tools | ORION |
-|---|---|
-| Show metrics | Investigates causes |
-| Commit to a guess | Tests the guess |
-| Kill the process | Suspends and resumes |
-| No verification | Measures the result |
-| No safety model | Refuses protected processes |
-| Never wrong | Reports when it is wrong |
-
----
-
-## Voice Interface
-
-ORION accepts browser-based voice input.
-
-    Microphone
-        |
-        v
-    Browser Audio Capture (Web Audio API)
-        |
-        v
-    PCM16 mono 16 kHz
-        |
-        v
-    AssemblyAI v3 streaming (WebSocket)
-        |
-        v
-    Live transcript
-        |
-        v
-    ORION investigation
-
-The permanent AssemblyAI API key is never sent to the browser.
-Instead, the browser requests a short-lived token from
-GET /voice/token.
-
-The frontend displays:
-
-- Voice state (IDLE / LISTENING / TRANSCRIPT READY)
-- Start and stop listening button
-- Live transcript
+| Other tools       | ORION                       |
+| ----------------- | --------------------------- |
+| Show metrics      | Investigates causes         |
+| Commit to a guess | Tests the guess             |
+| Kill the process  | Suspends and resumes        |
+| No verification   | Measures the result         |
+| No safety model   | Refuses protected processes |
+| Never wrong       | Reports when it's wrong     |
+| Single machine    | Multi-node monitoring       |
 
 ---
 
 ## Design Principles
 
-1. Evidence before conclusions. Measure first. Conclude second.
-2. Candidates are not causes. A candidate must be investigated.
-3. Multiple evidence sources. Never rely on one metric.
-4. Uncertainty is valid. NO_CONFIRMED_CAUSE is a real answer.
-5. Human control. Disruptive actions require user approval.
-6. Verify actions. Success is not "the action ran" — it is "the
-   system measurably improved."
-7. Structured intelligence. The engine produces structured data
-   the UI can consume directly, not prose that must be re-parsed.
+1. **Evidence before conclusions.** Measure first. Conclude second.
+2. **Candidates are not causes.** A candidate must be investigated.
+3. **Multiple evidence sources.** Never rely on one metric.
+4. **Uncertainty is valid.** `NO_CONFIRMED_CAUSE` is a real answer.
+5. **Human control.** Disruptive actions require user approval.
+6. **Verify actions.** Success is not "the action ran" — it is "the system measurably improved."
+7. **Structured intelligence.** The engine produces structured data the UI can consume directly.
 
 ---
 
 ## Future Development
 
-- Hardware intelligence — CPU/GPU temperature, fan speed, battery, thermal throttling
-- Storage intelligence — read/write latency, queue depth, SMART data
-- Network intelligence — latency, packet loss, DNS, per-process network usage
-- Long-term monitoring — baseline learning, anomaly alerts over time
-- Fleet intelligence — investigate multiple machines from one dashboard
+- **Hardware intelligence** — CPU/GPU temperature, fan speed, battery
+- **Storage intelligence** — read/write latency, queue depth, SMART
+- **Network intelligence** — latency, packet loss, DNS
+- **Kubernetes support** — pods, deployments, services as monitorable units
+- **Cloud integration** — AWS CloudWatch, Azure Monitor, GCP
+- **Long-term monitoring** — baseline learning, anomaly alerts
+- **Fleet intelligence** — investigate multiple data centers from one dashboard
 
 ---
 
@@ -624,68 +610,17 @@ The frontend displays:
 
 ORION is a prototype. It has real limitations:
 
-- Windows-focused. The current telemetry layer targets Windows.
-- No hardware sensors by default. Temperature and fan data may be
-  unavailable on some machines.
-- No GPU on every system. Discrete GPU telemetry depends on driver
-  support.
-- Causality is statistical, not absolute. System monitoring cannot
-  always prove a single cause.
-- LLM reasoning quality depends on evidence quality. If the tool
-  layer measures poorly, the reasoning layer reasons poorly.
-- Elevated permissions may be required for some telemetry or actions.
-
----
-
-## Manual Test Plan
-
-1. Backend health — GET /health returns {"status":"healthy"}
-2. General question — non-investigation input is handled correctly
-3. Investigation — "My laptop is extremely slow" runs the full pipeline
-4. History — the investigation appears in the history panel
-5. Voice — click mic, speak, transcript, investigation
-6. Remediation — safe process, approve, suspend, measure, resume, verify
-7. Protected process — dwm.exe refused with PROTECTED PROCESS
-8. Weak evidence — low-score candidate refused with NOT ACTIONABLE
-
----
-
-## Philosophy
-
-> Do not just answer the computer. Investigate it.
-
-A chatbot can say "Your CPU is high."
-A monitoring tool can say "Python is using 90% CPU."
-
-ORION goes further:
-
-    What is happening?
-          |
-          v
-    What could explain it?
-          |
-          v
-    What evidence supports each candidate?
-          |
-          v
-    What additional investigation is needed?
-          |
-          v
-    Does the evidence converge?
-          |
-          v
-    Can a safe intervention test the hypothesis?
-          |
-          v
-    Did the system actually improve?
-
-That is the purpose of ORION — Field Intelligence.
+- **Windows-focused.** Telemetry layer targets Windows.
+- **No hardware sensors by default.** Temperature and fan data may be unavailable on some machines.
+- **Causality is statistical, not absolute.** Monitoring cannot always prove a single cause.
+- **LLM quality depends on evidence quality.** Poor measurements lead to poor reasoning.
+- **Elevated permissions may be required** for some telemetry or actions.
 
 ---
 
 ## Author
 
-Bhavesh
+**Bhavesh**
 ORION — Field Intelligence
 
 Built as an AI-powered system investigation and diagnostic platform.
